@@ -1048,50 +1048,6 @@ function renderCheck(){
     <div id="check-result"></div>`;
 }
 
-  }).catch(function(e){alert('Supabase接続エラー: '+e.message);});
-})();`;
-
-  const href='javascript:'+encodeURIComponent(bmCode);
-
-  el.innerHTML=`
-    <div class="section-header">WEB申込照合</div>
-    <div class="card" style="border-left:3px solid var(--c1);margin-bottom:12px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:12px">📎 ブックマークレットでワンクリック照合</div>
-      <div style="font-size:13px;color:var(--text2);line-height:2;margin-bottom:14px">
-        <b>セットアップ（初回のみ・PCで）</b><br>
-        ① このページをPCのChromeで開く<br>
-        ② <b>Ctrl+Shift+B</b> でブックマークバーを表示<br>
-        ③ 下の緑ボタンをブックマークバーにドラッグ
-      </div>
-      <a id="bm-btn" href="${href}"
-        style="display:block;background:var(--c1);color:#fff;padding:14px;border-radius:10px;text-align:center;font-size:15px;font-weight:700;text-decoration:none;border:3px dashed #0d7a5a;cursor:move">
-        📋 東進→体験生照合
-      </a>
-      <div style="background:var(--c2l);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--c2);margin-top:10px">
-        💡 この緑のボタンをマウスでつかんでブックマークバーにドロップしてください
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:14px;font-weight:600;margin-bottom:10px">📋 毎日の使い方</div>
-      <div style="font-size:13px;color:var(--text2);line-height:2">
-        ① 東進管理画面でWEB問い合わせの表を表示<br>
-        ② ブックマークバーの「📋 東進→体験生照合」をクリック<br>
-        ③ アラートで未登録者の一覧が表示される<br>
-        ④ 未登録者がいれば管理システムが自動で開く
-      </div>
-      <div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--c3);margin-top:10px">
-        ⚠️ 「表示」ボタンを押してデータが出た状態でクリックしてください
-      </div>
-    </div>
-    <div class="card" style="margin-top:8px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:10px">📁 CSVでも照合できます</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">管理画面の表をExcelに貼り付け→CSV保存→アップロード</div>
-      <div class="form-group">
-        <input type="file" id="csv-file" accept=".csv" onchange="loadCSV(this)" style="padding:10px;border:2px dashed var(--border2);border-radius:var(--radius-sm);background:var(--bg)">
-      </div>
-    </div>
-    <div id="check-result"></div>`;
-}
 
 function loadCSV(input){
   const file = input.files[0];

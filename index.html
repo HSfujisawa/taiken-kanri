@@ -1038,7 +1038,7 @@ function renderCheck(){
       unregistered.forEach(function(r){msg+='・'+r.name+' ('+r.school+' '+r.grade+') '+r.applyLabel+'\\n';});
     }else{msg+='✅ 全員登録済みです！';}
     alert(msg);
-    if(unregistered.length>0){window.open('https://fujisawa-atlist-v3.netlify.app','_blank');}
+    if(unregistered.length>0){window.open('https://hsfujisawa.github.io/taiken-kanri/','_blank');}
   }).catch(function(e){alert('Supabase接続エラー: '+e.message);});
 })();`;
 

@@ -970,10 +970,15 @@ function renderCheck(){
     if(lastIdx!==-1){headerRowIdx=hi;break;}
   }
   if(lastIdx===-1){
-    // ヘッダー自動検出失敗 → 先頭行のセル内容をデバッグ表示
-    var dbgCells=rows[0]?Array.from(rows[0].querySelectorAll('th,td')).map(function(c,i){return i+':'+c.textContent.trim().slice(0,6);}).slice(0,30).join(' / '):'(行なし)';
-    var dbgCells2=rows[1]?Array.from(rows[1].querySelectorAll('th,td')).map(function(c,i){return i+':'+c.textContent.trim().slice(0,6);}).slice(0,30).join(' / '):'(行なし)';
-    alert('ヘッダー行が自動検出できませんでした。\\n総行数: '+rows.length+'\\n\\n0行目: '+dbgCells+'\\n\\n1行目: '+dbgCells2+'\\n\\nこの情報をシステム管理者にお伝えください。');
+    // 先頭10行の全セルをダンプ
+    var dbg='総行数: '+rows.length+'\\n\\n';
+    for(var di=0;di<Math.min(10,rows.length);di++){
+      var dcells=Array.from(rows[di].querySelectorAll('th,td'));
+      dbg+='【'+di+'行目 '+dcells.length+'列】\\n';
+      dcells.forEach(function(c,ci){ dbg+=ci+':"'+c.textContent.trim().slice(0,12)+'" '; });
+      dbg+='\\n\\n';
+    }
+    alert(dbg);
     return;
   }
   var gradeMap={'31':'高1','32':'高2','33':'高3','34':'高卒','21':'中1','22':'中2','23':'中3'};

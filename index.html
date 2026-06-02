@@ -1019,7 +1019,7 @@ function renderCheck(){
     else if(applyRaw.includes('招待講習')||applyRaw.includes('招待状請求'))applyLabel='招待講習';
     else if(applyRaw.includes('公開授業'))applyLabel='公開授業';
     var dateRaw=((cells[dateIdx]||{}).textContent||'').trim().slice(0,10).replace(/\\//g,'-');
-    results.push({name:name,school:school,grade:grade,applyLabel:applyLabel,applyDate:dateRaw});
+    results.push({name:name,school:school,grade:grade,applyLabel:applyLabel,triggerLabel:'その他',applyDate:dateRaw});
   }
   if(!results.length){
     alert('データ行が取得できませんでした。\\n検出行数: '+rows.length+'行\\nヘッダー行位置: '+headerRowIdx+'行目\\n\\nヘッダー列インデックス:\\n漢字姓='+lastIdx+' 漢字名='+firstIdx+' 学年='+gradeIdx);
@@ -1337,10 +1337,10 @@ function renderCheckResult(){
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
         <span class="badge b-amber">${a.applyLabel}</span>
-        <span class="badge b-purple">きっかけ: ${a.triggerLabel}</span>
+        <span class="badge b-purple">きっかけ: ${a.triggerLabel||'その他'}</span>
         <span class="badge b-gray">申込: ${fmt(a.applyDate)}</span>
       </div>
-      <button class="btn btn-primary btn-full btn-sm" onclick="quickRegister('${a.name.replace(/'/g,"\\'")}','${a.school.replace(/'/g,"\\'")}','${a.grade}','${a.applyLabel}','${a.triggerLabel}','${a.applyDate}')">
+      <button class="btn btn-primary btn-full btn-sm" onclick="quickRegister('${a.name.replace(/'/g,"\\'")}','${a.school.replace(/'/g,"\\'")}','${a.grade}','${a.applyLabel}','${a.triggerLabel||'その他'}','${a.applyDate}')">
         このまま見込へ登録する →
       </button>
     </div>`).join('')}

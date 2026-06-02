@@ -1130,10 +1130,10 @@ function renderCheck(){
       unregistered.forEach(function(r){msg+='・'+r.name+' ('+r.school+' '+r.grade+') '+r.applyLabel+'\\n';});
     }else{msg+='✅ 全員登録済みです！';}
     alert(msg);
+    try{localStorage.setItem('taiken_unreg',JSON.stringify(results));}catch(e){}
     if(unregistered.length>0){
-      var param=encodeURIComponent(JSON.stringify(results));
-      window.open('https://hsfujisawa.github.io/taiken-kanri/?unreg='+param,'_blank');
-    }else{}
+      window.open('https://hsfujisawa.github.io/taiken-kanri/','_blank');
+    }
   }).catch(function(e){alert('Supabase接続エラー: '+e.message);});
 })();`;
 
@@ -1480,14 +1480,13 @@ function checkPw(){
     sessionStorage.setItem('pw_ok','1');
     document.getElementById('pw-screen').classList.add('hidden');
     init().then(()=>{
-      const params=new URLSearchParams(location.search);
-      const unreg=params.get('unreg');
-      if(unreg){
+      const data=localStorage.getItem('taiken_unreg');
+      if(data){
         try{
-          parsedWebApplicants=JSON.parse(decodeURIComponent(unreg));
+          parsedWebApplicants=JSON.parse(data);
           allSubTab='check';
           switchTab('all');
-          history.replaceState({},'',location.pathname);
+          localStorage.removeItem('taiken_unreg');
         }catch(e){}
       }
     });
@@ -1516,15 +1515,13 @@ async function init(){
 if(sessionStorage.getItem('pw_ok')==='1'){
   document.getElementById('pw-screen').classList.add('hidden');
   init().then(()=>{
-    // URLパラメータに未登録者データがあれば照合タブを自動表示
-    const params=new URLSearchParams(location.search);
-    const unreg=params.get('unreg');
-    if(unreg){
+    const data=localStorage.getItem('taiken_unreg');
+    if(data){
       try{
-        parsedWebApplicants=JSON.parse(decodeURIComponent(unreg));
+        parsedWebApplicants=JSON.parse(data);
         allSubTab='check';
         switchTab('all');
-        history.replaceState({},'',location.pathname);
+        localStorage.removeItem('taiken_unreg');
       }catch(e){}
     }
   });

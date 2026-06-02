@@ -330,8 +330,13 @@ const TOP_TABS = {
     {id:'all', label:'全員'},
     {id:'today', label:'今日登校'},
     {id:'tomorrow', label:'明日登校'},
+  ],
+  all: [
+    {id:'list', label:'一覧'},
+    {id:'check', label:'照合'},
   ]
 };
+let allSubTab = 'list'; // 一覧タブのサブタブ
 
 function switchTab(t){
   currentTab = t;
@@ -340,10 +345,10 @@ function switchTab(t){
   document.getElementById('nav-'+t).classList.add('active');
   document.querySelectorAll('.section').forEach(el=>el.style.display='none');
   document.getElementById('section-'+t).style.display='block';
-  // top tabs
   const tc = document.getElementById('top-tabs-container');
   if(TOP_TABS[t]){
-    tc.innerHTML = TOP_TABS[t].map(tb=>`<button class="top-tab ${activeSubTab===tb.id?'active':''}" onclick="switchSub('${tb.id}')">${tb.label}</button>`).join('');
+    const subId = t==='all' ? allSubTab : activeSubTab;
+    tc.innerHTML = TOP_TABS[t].map(tb=>`<button class="top-tab ${subId===tb.id?'active':''}" onclick="switchSub('${tb.id}')">${tb.label}</button>`).join('');
   } else {
     tc.innerHTML='';
   }
@@ -351,10 +356,18 @@ function switchTab(t){
   renderSection(t);
 }
 function switchSub(t){
-  activeSubTab=t;
-  document.querySelectorAll('.top-tab').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.top-tab').forEach(el=>{ if(el.textContent===TOP_TABS[currentTab].find(x=>x.id===t)?.label) el.classList.add('active'); });
-  renderSection('active');
+  if(currentTab==='all'){
+    allSubTab=t;
+    const tc=document.getElementById('top-tabs-container');
+    tc.innerHTML=TOP_TABS['all'].map(tb=>`<button class="top-tab ${allSubTab===tb.id?'active':''}" onclick="switchSub('${tb.id}')">${tb.label}</button>`).join('');
+    if(t==='list') renderAll();
+    else renderCheckInAll();
+  } else {
+    activeSubTab=t;
+    document.querySelectorAll('.top-tab').forEach(el=>el.classList.remove('active'));
+    document.querySelectorAll('.top-tab').forEach(el=>{ if(el.textContent===TOP_TABS[currentTab].find(x=>x.id===t)?.label) el.classList.add('active'); });
+    renderSection('active');
+  }
 }
 
 function updateBadges(){
@@ -372,7 +385,7 @@ function renderSection(t){
   else if(t==='first') renderFirst();
   else if(t==='active') renderActive();
   else if(t==='enrolled') renderEnrolled();
-  else if(t==='all') renderAll();
+  else if(t==='all'){ if(allSubTab==='check') renderCheckInAll(); else renderAll(); }
   else if(t==='check') renderCheck();
 }
 
@@ -919,6 +932,85 @@ function handleModalBg(e){ if(e.target===document.getElementById('modal')) close
 // ---- CHECK ----
 let parsedWebApplicants = [];
 
+// 一覧タブ内の照合サブタブ表示
+function renderCheckInAll(){
+  const el=document.getElementById('section-all');
+  const registered=new Set(students.map(s=>s.name.replace(/\s/g,'')));
+
+  // サブタブは維持しつつエリアだけ切り替え
+  if(!document.getElementById('check-in-all-area')){
+    el.innerHTML=`
+      <div class="all-filter" id="all-filter-bar2">
+        <button class="active" onclick="switchSub('list')" style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--border2);background:none;color:var(--text2);cursor:pointer;font-family:'Noto Sans JP',sans-serif">一覧</button>
+        <button style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--border2);background:var(--text);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif">照合</button>
+      </div>
+      <div id="check-in-all-area"></div>`;
+  }
+
+  const area=document.getElementById('check-in-all-area');
+  if(!area) return;
+
+  if(!parsedWebApplicants.length){
+    area.innerHTML=`
+      <div class="card" style="border-left:3px solid var(--c2)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">照合データなし</div>
+        <div style="font-size:13px;color:var(--text2);line-height:2">
+          東進管理画面でブックマークレット「📋 東進→体験生照合」を実行すると、ここに結果が表示されます。
+        </div>
+      </div>`;
+    return;
+  }
+
+  const unregistered=parsedWebApplicants.filter(a=>!registered.has(a.name.replace(/\s/g,'')));
+  const already=parsedWebApplicants.filter(a=>registered.has(a.name.replace(/\s/g,'')));
+
+  // バッジ更新
+  const nbEl=document.getElementById('nb-check');
+  if(nbEl){nbEl.textContent=unregistered.length;nbEl.style.display=unregistered.length?'block':'none';}
+
+  area.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:${unregistered.length?'#A32D2D':'var(--c1)'}">
+        ${unregistered.length?`⚠️ 未登録: ${unregistered.length}名`:'✅ 全員登録済み'}
+      </span>
+      <span style="font-size:12px;color:var(--text3)">/ 取得: ${parsedWebApplicants.length}名</span>
+      <button onclick="parsedWebApplicants=[];renderCheckInAll()" style="margin-left:auto;padding:4px 10px;border-radius:20px;font-size:11px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer">クリア</button>
+    </div>
+    ${parsedWebApplicants.map(a=>{
+      const isReg=registered.has(a.name.replace(/\s/g,''));
+      const regStu=isReg?students.find(s=>s.name.replace(/\s/g,'')=== a.name.replace(/\s/g,'')) :null;
+      return `<div class="card" style="border-left:3px solid ${isReg?'var(--c1)':'#A32D2D'};${isReg?'opacity:.75':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:15px;font-weight:600">${a.name}</div>
+            <div style="font-size:12px;color:var(--text2)">${a.school} · ${a.grade}</div>
+          </div>
+          ${isReg
+            ? `<span class="badge b-teal">登録済 (${(FLOW_LABEL[regStu?.flow]||regStu?.flow||'-')})</span>`
+            : '<span class="badge b-red">未登録</span>'
+          }
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;${isReg?'':'margin-bottom:10px'}">
+          <span class="badge b-amber">${a.applyLabel}</span>
+          <span class="badge b-gray">申込: ${fmt(a.applyDate)}</span>
+        </div>
+        ${!isReg?`<button class="btn btn-primary btn-full btn-sm" onclick="quickRegisterFromAll('${a.name.replace(/'/g,"\\'")}','${a.school.replace(/'/g,"\\'")}','${a.grade}','${a.applyLabel}','${a.applyDate}')">このまま見込へ登録する →</button>`:''}
+      </div>`;
+    }).join('')}`;
+}
+
+async function quickRegisterFromAll(name,school,grade,applyLabel,applyDate){
+  if(!confirm(`${name}さんを見込に登録しますか？`)) return;
+  loader(true);
+  try{
+    await createStudent({name,school,grade,apply_type:applyLabel,apply_trigger:'その他',content:'',created_at:applyDate||TODAY,flow:'prospect',active_history:[],active_done_today:false});
+    await loadStudents();
+    showToast(name+'さんを登録しました');
+    renderCheckInAll();
+  }catch(e){showToast('エラーが発生しました');}
+  loader(false);
+}
+
 function renderCheck(){
   const el=document.getElementById('section-check');
   const bmCode=`(function(){
@@ -1039,9 +1131,9 @@ function renderCheck(){
     }else{msg+='✅ 全員登録済みです！';}
     alert(msg);
     if(unregistered.length>0){
-      var param=encodeURIComponent(JSON.stringify(unregistered));
+      var param=encodeURIComponent(JSON.stringify(results));
       window.open('https://hsfujisawa.github.io/taiken-kanri/?unreg='+param,'_blank');
-    }
+    }else{}
   }).catch(function(e){alert('Supabase接続エラー: '+e.message);});
 })();`;
 
@@ -1393,8 +1485,8 @@ function checkPw(){
       if(unreg){
         try{
           parsedWebApplicants=JSON.parse(decodeURIComponent(unreg));
-          switchTab('check');
-          renderCheckResult();
+          allSubTab='check';
+          switchTab('all');
           history.replaceState({},'',location.pathname);
         }catch(e){}
       }
@@ -1430,9 +1522,8 @@ if(sessionStorage.getItem('pw_ok')==='1'){
     if(unreg){
       try{
         parsedWebApplicants=JSON.parse(decodeURIComponent(unreg));
-        switchTab('check');
-        renderCheckResult();
-        // URLをきれいにする
+        allSubTab='check';
+        switchTab('all');
         history.replaceState({},'',location.pathname);
       }catch(e){}
     }

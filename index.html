@@ -922,25 +922,35 @@ let parsedWebApplicants = [];
 function renderCheck(){
   const el=document.getElementById('section-check');
   const bmCode=`(function(){
-  // iframe内も含めてtrを探す
-  function getRows(doc){
-    var rows=Array.from(doc.querySelectorAll('tr'));
-    return rows;
+  // 全ドキュメント（ネストiframe含む）を再帰的に収集
+  function getAllDocs(win,depth){
+    if(depth>5)return[];
+    var docs=[];
+    try{
+      var doc=win.document;
+      docs.push(doc);
+      var frames=doc.querySelectorAll('iframe,frame');
+      for(var i=0;i<frames.length;i++){
+        try{
+          var fw=frames[i].contentWindow;
+          if(fw) docs=docs.concat(getAllDocs(fw,depth+1));
+        }catch(e){}
+      }
+    }catch(e){}
+    return docs;
   }
-  var rows=getRows(document);
-  // iframeの中も探す
-  if(rows.length<3){
-    var frames=document.querySelectorAll('iframe,frame');
-    for(var f=0;f<frames.length;f++){
-      try{
-        var fdoc=frames[f].contentDocument||frames[f].contentWindow.document;
-        var fr=getRows(fdoc);
-        if(fr.length>rows.length){rows=fr;}
-      }catch(e){}
-    }
+  // 最もtrが多いドキュメントを採用
+  var allDocs=getAllDocs(window,0);
+  var rows=[];
+  for(var d=0;d<allDocs.length;d++){
+    try{
+      var r=Array.from(allDocs[d].querySelectorAll('tr'));
+      if(r.length>rows.length) rows=r;
+    }catch(e){}
   }
   if(!rows||rows.length<2){
-    alert('表が見つかりません。\\ntr要素数: '+document.querySelectorAll('tr').length+'\\nframe数: '+document.querySelectorAll('iframe,frame').length+'\\n\\n表示ボタンを押してデータを表示してから実行してください。');
+    var info='表が見つかりません。\\n探索ドキュメント数: '+allDocs.length+'\\ntr要素数(最大): '+rows.length+'\\n\\n「表示」ボタンを押してデータを表示してから実行してください。';
+    alert(info);
     return;
   }
   // ヘッダー行を探す
@@ -959,7 +969,13 @@ function renderCheck(){
     });
     if(lastIdx!==-1){headerRowIdx=hi;break;}
   }
-  if(lastIdx===-1){lastIdx=10;firstIdx=11;schoolIdx=24;gradeIdx=26;applyIdx=6;dateIdx=5;}
+  if(lastIdx===-1){
+    // ヘッダー自動検出失敗 → 先頭行のセル内容をデバッグ表示
+    var dbgCells=rows[0]?Array.from(rows[0].querySelectorAll('th,td')).map(function(c,i){return i+':'+c.textContent.trim().slice(0,6);}).slice(0,30).join(' / '):'(行なし)';
+    var dbgCells2=rows[1]?Array.from(rows[1].querySelectorAll('th,td')).map(function(c,i){return i+':'+c.textContent.trim().slice(0,6);}).slice(0,30).join(' / '):'(行なし)';
+    alert('ヘッダー行が自動検出できませんでした。\\n総行数: '+rows.length+'\\n\\n0行目: '+dbgCells+'\\n\\n1行目: '+dbgCells2+'\\n\\nこの情報をシステム管理者にお伝えください。');
+    return;
+  }
   var gradeMap={'31':'高1','32':'高2','33':'高3','34':'高卒','21':'中1','22':'中2','23':'中3'};
   var results=[];var seen={};
   for(var i=headerRowIdx+1;i<rows.length;i++){

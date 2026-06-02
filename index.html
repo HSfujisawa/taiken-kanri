@@ -922,41 +922,46 @@ let parsedWebApplicants = [];
 function renderCheck(){
   const el=document.getElementById('section-check');
   const bmCode=`(function(){
-  // 全ドキュメント（ネストiframe含む）を再帰的に収集
-  function getAllDocs(win,depth){
-    if(depth>5)return[];
-    var docs=[];
-    try{
-      var doc=win.document;
-      docs.push(doc);
-      var frames=doc.querySelectorAll('iframe,frame');
-      for(var i=0;i<frames.length;i++){
-        try{
-          var fw=frames[i].contentWindow;
-          if(fw) docs=docs.concat(getAllDocs(fw,depth+1));
-        }catch(e){}
-      }
-    }catch(e){}
-    return docs;
-  }
-  // 最もtrが多いドキュメントを採用
-  var allDocs=getAllDocs(window,0);
+  // frameBody(MAINFRAME > frameBody)を直接取得
   var rows=[];
-  for(var d=0;d<allDocs.length;d++){
-    try{
-      var r=Array.from(allDocs[d].querySelectorAll('tr'));
-      if(r.length>rows.length) rows=r;
-    }catch(e){}
+  try{
+    var mainFrame=document.querySelector('frame[name="MAINFRAME"]');
+    if(mainFrame){
+      var mainDoc=mainFrame.contentDocument||mainFrame.contentWindow.document;
+      var bodyFrame=mainDoc.querySelector('frame[name="frameBody"]');
+      if(bodyFrame){
+        var bodyDoc=bodyFrame.contentDocument||bodyFrame.contentWindow.document;
+        rows=Array.from(bodyDoc.querySelectorAll('tr'));
+      }
+    }
+  }catch(e){}
+  // 取得できなかった場合は全ドキュメントから最大tr数を探す
+  if(rows.length<2){
+    function getAllDocs(win,depth){
+      if(depth>5)return[];
+      var docs=[];
+      try{
+        var doc=win.document;docs.push(doc);
+        var frames=doc.querySelectorAll('iframe,frame');
+        for(var i=0;i<frames.length;i++){
+          try{var fw=frames[i].contentWindow;if(fw)docs=docs.concat(getAllDocs(fw,depth+1));}catch(e){}
+        }
+      }catch(e){}
+      return docs;
+    }
+    var allDocs=getAllDocs(window,0);
+    for(var d=0;d<allDocs.length;d++){
+      try{var r=Array.from(allDocs[d].querySelectorAll('tr'));if(r.length>rows.length)rows=r;}catch(e){}
+    }
   }
   if(!rows||rows.length<2){
-    var info='表が見つかりません。\\n探索ドキュメント数: '+allDocs.length+'\\ntr要素数(最大): '+rows.length+'\\n\\n「表示」ボタンを押してデータを表示してから実行してください。';
-    alert(info);
+    alert('表が見つかりません。「表示」ボタンを押してデータを表示してから実行してください。');
     return;
   }
-  // ヘッダー行を探す
-  var headerRowIdx=0;
+  // 全行を走査してヘッダー行とデータ行を特定
+  var headerRowIdx=-1;
   var lastIdx=-1,firstIdx=-1,schoolIdx=-1,gradeIdx=-1,applyIdx=-1,dateIdx=-1;
-  for(var hi=0;hi<Math.min(10,rows.length);hi++){
+  for(var hi=0;hi<rows.length;hi++){
     var cells0=rows[hi].querySelectorAll('th,td');
     cells0.forEach(function(th,i){
       var t=th.textContent.trim();
@@ -969,17 +974,27 @@ function renderCheck(){
     });
     if(lastIdx!==-1){headerRowIdx=hi;break;}
   }
+  // ヘッダーが見つからない場合はデータ行から列位置を推定
   if(lastIdx===-1){
-    // 先頭10行の全セルをダンプ
-    var dbg='総行数: '+rows.length+'\\n\\n';
-    for(var di=0;di<Math.min(10,rows.length);di++){
-      var dcells=Array.from(rows[di].querySelectorAll('th,td'));
-      dbg+='【'+di+'行目 '+dcells.length+'列】\\n';
-      dcells.forEach(function(c,ci){ dbg+=ci+':"'+c.textContent.trim().slice(0,12)+'" '; });
-      dbg+='\\n\\n';
+    // データ行（7桁IDで始まる行）を探して列数から推定
+    var sampleRow=null;
+    for(var si=0;si<rows.length;si++){
+      var sc=rows[si].querySelectorAll('td,th');
+      if(sc.length>=10 && /^\\d{7,}/.test((sc[0]||{}).textContent||'')){
+        sampleRow=si; break;
+      }
     }
-    alert(dbg);
-    return;
+    if(sampleRow===null){
+      var dbg='総行数: '+rows.length+'\\n\\nヘッダー行もデータ行も見つかりませんでした。\\n\\n先頭5行:\\n';
+      for(var di=0;di<Math.min(5,rows.length);di++){
+        var dc=Array.from(rows[di].querySelectorAll('th,td'));
+        dbg+='['+di+'行 '+dc.length+'列] '+dc.slice(0,5).map(function(c){return c.textContent.trim().slice(0,8);}).join(' / ')+'\\n';
+      }
+      alert(dbg); return;
+    }
+    // Console調査で確認済みの正確なインデックス
+    lastIdx=10; firstIdx=11; schoolIdx=23; gradeIdx=25; applyIdx=6; dateIdx=5;
+    headerRowIdx=sampleRow-1;
   }
   var gradeMap={'31':'高1','32':'高2','33':'高3','34':'高卒','21':'中1','22':'中2','23':'中3'};
   var results=[];var seen={};

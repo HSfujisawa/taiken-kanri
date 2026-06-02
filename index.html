@@ -1130,9 +1130,23 @@ function renderCheck(){
       unregistered.forEach(function(r){msg+='・'+r.name+' ('+r.school+' '+r.grade+') '+r.applyLabel+'\\n';});
     }else{msg+='✅ 全員登録済みです！';}
     alert(msg);
-    try{localStorage.setItem('taiken_unreg',JSON.stringify(results));}catch(e){}
+    var dataStr=JSON.stringify(results);
+    // BroadcastChannelで既に開いている体験生管理システムに送信
+    try{
+      var ch=new BroadcastChannel('taiken_check');
+      ch.postMessage(dataStr);
+      ch.close();
+    }catch(e){}
     if(unregistered.length>0){
       window.open('https://hsfujisawa.github.io/taiken-kanri/','_blank');
+      // 新ウィンドウへも送信（少し遅延して）
+      setTimeout(function(){
+        try{
+          var ch2=new BroadcastChannel('taiken_check');
+          ch2.postMessage(dataStr);
+          ch2.close();
+        }catch(e){}
+      },2000);
     }
   }).catch(function(e){alert('Supabase接続エラー: '+e.message);});
 })();`;
@@ -1512,6 +1526,18 @@ async function init(){
 }
 
 // ---- STARTUP ----
+// BroadcastChannelで東進ブックマークレットからのデータを受信
+try{
+  const bcChannel=new BroadcastChannel('taiken_check');
+  bcChannel.onmessage=function(e){
+    try{
+      parsedWebApplicants=JSON.parse(e.data);
+      allSubTab='check';
+      switchTab('all');
+    }catch(err){}
+  };
+}catch(e){}
+
 if(sessionStorage.getItem('pw_ok')==='1'){
   document.getElementById('pw-screen').classList.add('hidden');
   init().then(()=>{
